@@ -1,0 +1,12 @@
+# build cache
+**/dist
+**/bin
+# VCS
+.git
+# IDE / editor
+.vscode
+.idea
+# modules
+pkg/mod
+# test artefacts
+coverage.*

@@ -1,0 +1,4 @@
+DROP INDEX IF EXISTS idx_trips_vehicle_time;
+DROP TABLE IF EXISTS trips;
+DROP TABLE IF EXISTS vehicle;
+DROP EXTENSION IF EXISTS "uuid-ossp";

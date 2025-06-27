@@ -1,0 +1,89 @@
+version: "3.9"
+
+services:
+  # ------------------------------------------------------------------------
+  # PostgreSQL
+  # ------------------------------------------------------------------------
+  pg:
+    image: postgres:16
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: app
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "app"]
+      interval: 5s
+      retries: 5
+    networks: [backend]
+
+  # ------------------------------------------------------------------------
+  # Redis
+  # ------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+    networks: [backend]
+
+  # ------------------------------------------------------------------------
+  # One‑shot migration job (runs before API starts)
+  # ------------------------------------------------------------------------
+  migrate:
+    image:  migrate/migrate:v4.17.1
+    networks: [backend]
+    volumes:
+      - ./migrations:/migrations:ro          # already copied in Dockerfile, but keep for dev‑convenience
+    depends_on:
+      pg:
+        condition: service_healthy
+    entrypoint:
+      [
+        "migrate",
+        "-path", "/migrations",
+        "-database", "postgres://app:secret@pg:5432/app?sslmode=disable"
+      ]
+    command: ["up"]
+
+  # ------------------------------------------------------------------------
+  # API container (your Go binary)
+  # ------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fleettracker-api:latest
+    container_name: fleettracker-api
+    env_file: .env           # picks up PG_DSN, REDIS_ADDR, PORT, JWT_SIGN_KEY
+    depends_on:
+      pg:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - backend
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/hello" ]
+      interval: 10s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+
+networks:
+  backend:
+    driver: bridge

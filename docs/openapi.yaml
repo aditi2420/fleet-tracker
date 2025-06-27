@@ -1,0 +1,111 @@
+openapi: 3.0.0
+info:
+  title: Fleet-Tracker API
+  version: "1.0.0"
+  description: |
+    REST endpoints for ingesting and querying live vehicle telemetry.
+
+servers:
+  - url: http://localhost:8080
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Status:
+      type: object
+      properties:
+        location:
+          type: array
+          items: { type: number, format: double }
+          minItems: 2
+          maxItems: 2
+          example: [55.2962, 25.2769]
+        speed:
+          type: number
+          format: double
+          example: 72.5
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-06-26T14:00:00Z"
+      required: [location, speed, timestamp]
+
+    Trip:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        start_time: { type: string, format: date-time }
+        end_time:   { type: string, format: date-time, nullable: true }
+        mileage:    { type: number, format: double }
+        avg_speed:  { type: number, format: double }
+      required: [id, start_time, mileage, avg_speed]
+
+  responses:
+    Unauthorized:
+      description: JWT is missing, expired, or invalid
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: unauthorized
+
+security:
+  - BearerAuth: []
+
+paths:
+  /api/vehicle/status:
+    get:
+      summary: Latest status for one vehicle
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Status" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/vehicle/trips:
+    get:
+      summary: Recent trips (last 24 h)
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Trip" }
+
+  /api/vehicle/ingest:
+    post:
+      summary: Ingest one telemetry ping
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vehicle_id: { type: string, format: uuid }
+                status:     { $ref: "#/components/schemas/Status" }
+              required: [vehicle_id, status]
+      responses:
+        "202": { description: Accepted }
