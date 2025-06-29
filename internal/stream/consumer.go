@@ -19,10 +19,12 @@ func Consumer(ctx context.Context, in <-chan Payload, svc service.VehicleService
 				slog.Error("ingest api failed for vehicle id", "vehicle", payload.VehicleID, "err", err)
 				continue
 			}
-			slog.Info("successfully ingested vehicle id", payload.VehicleID,
-				"speed", payload.Status.Speed,
-				"lat", payload.Status.Location[1],
-				"long", payload.Status.Location[0])
+
+			slog.Info("successfully ingested vehicleID",
+				slog.String("vehicle_id", payload.VehicleID.String()),
+				slog.Float64("lat", payload.Status.Location[1]),
+				slog.Float64("long", payload.Status.Location[0]),
+			)
 		}
 	}
 }

@@ -20,7 +20,8 @@ func Produce(ctx context.Context, out chan<- Payload, id uuid.UUID) {
 		case <-ctx.Done():
 			return
 		case t := <-ticker.C:
-			slog.Info("Producing payload for vehicle %s", id.String())
+			slog.Info("Producing payload",
+				slog.String("vehicle_id", id.String()))
 			out <- Payload{ //writing into the channel:out
 				VehicleID: id,
 				Plate:     id.String(),

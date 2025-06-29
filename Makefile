@@ -1,4 +1,4 @@
-.PHONY: build up down logs token
+.PHONY: build up down logs token test test-verbose test-coverage test-unit test-integration test-short
 
 build:           ## build API image only
 	docker compose build api
@@ -14,3 +14,7 @@ logs:            ## follow API logs
 
 token:           ## generate a dev JWT
 	go run ./cmd/token -sub dev -exp 24h
+
+test:            ## run all tests
+	go test ./...
+
